@@ -32,14 +32,6 @@ enum animalType{
     Wall
 };
 
-struct Edge{
-    int start;
-    int end;
-    double weight;
-
-    friend std::ostream &operator<<(std::ostream & out, const Edge &edge);
-    
-};
 
 struct CageMST{
     int x;
@@ -57,6 +49,8 @@ struct CageMST{
 
 class GraphMST{
     public:
+
+    GraphMST();
 
     void run();
 
@@ -86,36 +80,36 @@ class GraphMST{
 ///             FASTTSP            ///
 //////////////////////////////////////
 
-struct CageFAST{
+struct CageTSP{
     int x;
     int y;
     int ID;
-    double dist;
+    size_t parent;
     bool visited;
-    
-    friend std::ostream &operator<<(std::ostream & out, const CageFAST &cage);
+    double dist;
 };
 
 class GraphFASTTSP{
     public:
     void run();
 
+    GraphFASTTSP();
+
+    void run2();
+    std::vector<CageTSP> getCages();
+    double getDist()const;
+    std::vector<int> getPath();
+
     private:
-    void print();
+    void print()const;
     void readInput();
 
-    //void twoOPTswap(size_t i, size_t j, double distDiff);
-
-    //void greedyCycle();
-
-    //void twoOPT();
-
     void randomInsertion();
-    double calcDist(const CageFAST & cageOne, const CageFAST & cageTwo)const;
-    double calcTotalDistance();
+    double calcDist(const CageTSP & cageOne, const CageTSP & cageTwo)const;
+    double calcTotalDistance()const;
 
     std::vector<int> path;
-    std::vector<CageFAST> cages;
+    std::vector<CageTSP> cages;
     double totalDist;
     int numCages;
 
@@ -129,28 +123,35 @@ class GraphFASTTSP{
 ///             OPTTSP             ///
 //////////////////////////////////////
 
-
 class GraphOPT{
     public:
+    void run();
+
+    GraphOPT(std::vector<int> path_in, std::vector<CageTSP> cages_in, double upperBound_in);
+    //GraphOPT(std::vector<CageTSP> cages_in, double upperBound_in);
 
     private:
+    void print()const;
 
-    template <typename T>
-    void genPerms(vector<T> &path, size_t permLength) {
-        if (permLength == path.size()) {
-        // Do something with the path
-            return;
-        }  // if ..complete path
+    double calcDist(const CageTSP & cageOne, const CageTSP & cageTwo)const;
+    double calcDistTotal()const;
+    double connectMSTfront(size_t permLength);
+    double connectMSTback(size_t permLength);
 
-        if (!promising(path, permLength)) {
-            return;
-        }  // if ..not promising
+    double calcLowerBound(size_t permLength);
 
-        for (size_t i = permLength; i < path.size(); ++i) {
-            swap(path[permLength], path[i]);
-            genPerms(path, permLength + 1);
-            swap(path[permLength], path[i]);
-        }  // for ..unpermuted elements
-    }  // genPerms()
+    bool promising(size_t permLength);
 
+    void genPerms(size_t permLength);
+
+    void genCostMat();
+
+    double calcMST(size_t permLength);
+
+    std::vector<int> path;
+    std::vector<int> bestPath;
+    std::vector<CageTSP> cages;
+    std::vector<std::vector<double>> costMatrix;
+    double upperBound;
+    size_t numCages;    
 };

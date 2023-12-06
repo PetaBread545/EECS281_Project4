@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/zoo_debug",
-            "args": ["-m", "FASTTSP", "<", "sample-e.txt", ">", "sample_e.txt"],
+            "args": ["-m", "OPTTSP", "<", "sample-e.txt", ">", "sample_e.txt"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

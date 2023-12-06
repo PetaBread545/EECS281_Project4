@@ -13,11 +13,17 @@ int main(int argc, char * argv[]){
     if(mode == MST){
         GraphMST graphMST;
         graphMST.run();
-    } else if( mode == FASTTSP){
+    } else if(mode == FASTTSP){
         GraphFASTTSP graphFAST;
         graphFAST.run();
     } else if(mode == OPTTSP){
-        return 1;
+        GraphFASTTSP graphOne;
+        graphOne.run2();
+
+        GraphOPT graphTwo(graphOne.getPath(), graphOne.getCages(), graphOne.getDist());
+        //GraphOPT graphTwo(graphOne.getCages(), graphOne.getDist());
+        graphTwo.run();
+
     }
 
 }

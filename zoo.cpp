@@ -64,6 +64,11 @@ void printHelp(){
 //         CAGE STUFF          //
 //////////////////////////////////
 
+GraphMST::GraphMST(){
+    cageNum = 0;
+    totalDist = 0;
+}
+
 void CageMST::checkType(){
     if((this->x > 0 && this->y > 0) || (this->x <= 0 && this->y > 0) || (this->x > 0 && this->y <= 0)){
         this->type = Safe;
@@ -85,21 +90,6 @@ ostream & operator<<(ostream & out, const CageMST & cage){
     out << cage.ID << " " << cage.parent;
     return out;
 }
-
-//////////////////////////////////
-//          EDGE STUFF          //
-//////////////////////////////////
-
-
-ostream & operator<<(ostream & out, const Edge & edge){
-    if(edge.start > edge.end){
-        out << edge.end << " " << edge.start;
-        return out;
-    }
-    out << edge.start << " " << edge.end;
-    return out;
-}
-
 
 //////////////////////////////////
 //         GRAPH STUFF          //
@@ -217,7 +207,13 @@ void GraphMST::run(){
 //        FASTTSP STUFF         //
 //////////////////////////////////
 
-ostream & operator<<(ostream & out, const CageFAST & cage){
+
+GraphFASTTSP::GraphFASTTSP(){
+    totalDist = 0;
+    numCages = 0;
+}
+
+ostream & operator<<(ostream & out, const CageTSP & cage){
     out << cage.ID;
     return out;
 }
@@ -230,7 +226,7 @@ void GraphFASTTSP::run(){
     print();
 }
 
-void GraphFASTTSP::print(){
+void GraphFASTTSP::print()const{
     cout << totalDist << "\n";
     for(size_t i = 0; i < path.size(); ++i){
         cout << path[i] << " ";
@@ -246,11 +242,29 @@ void GraphFASTTSP::readInput(){
     path.reserve(numCages + 1);
     for(int i = 0; i < numCages; ++i){
         cin >> xCord >> yCord;
-        CageFAST cage{xCord, yCord, i, numeric_limits<double>::infinity(), false};
+        CageTSP cage{xCord, yCord, i, 0,  false, numeric_limits<double>::infinity()};
         cages.push_back(cage);
     }
 }
 
+void GraphFASTTSP::run2(){
+    readInput();
+    //greedyCycle();
+    //twoOPT();
+    randomInsertion();
+}
+
+vector<int> GraphFASTTSP::getPath(){
+    return path;
+}
+
+vector<CageTSP> GraphFASTTSP::getCages(){
+    return cages;
+}
+
+double GraphFASTTSP::getDist()const{
+    return totalDist;
+}
 /*void GraphFASTTSP::greedyCycle(){
     
     int nextV = 0, currentV = 0;
@@ -319,8 +333,7 @@ void GraphFASTTSP::twoOPT(){
     }
 }*/
 
-double GraphFASTTSP::calcDist(const CageFAST & cageOne, const CageFAST & cageTwo)const{
-    
+double GraphFASTTSP::calcDist(const CageTSP & cageOne, const CageTSP & cageTwo)const{
     uint64_t xDiff = cageOne.x - cageTwo.x;
     uint64_t yDiff = cageOne.y - cageTwo.y;
     uint64_t xDist = xDiff * xDiff;
@@ -344,14 +357,15 @@ void GraphFASTTSP::randomInsertion(){
         int currentIndex = order[i];
         for(size_t j = 0; j < path.size(); ++j){
             double temp = 0;
+            int pathJ = path[j];
             if(j + 1 == path.size()){
-                temp = calcDist(cages[path[j]], cages[currentIndex]) 
+                temp = calcDist(cages[pathJ], cages[currentIndex]) 
                     + calcDist(cages[currentIndex], cages[path[0]]) 
-                    - calcDist(cages[path[j]], cages[path[0]]);
+                    - calcDist(cages[pathJ], cages[path[0]]);
             }else{
-                temp = calcDist(cages[path[j]], cages[currentIndex]) 
+                temp = calcDist(cages[pathJ], cages[currentIndex]) 
                     + calcDist(cages[currentIndex], cages[path[j+1]]) 
-                    - calcDist(cages[path[j]], cages[path[j+1]]);
+                    - calcDist(cages[pathJ], cages[path[j+1]]);
             }
             if(temp < min){
                 minIndex = static_cast<int>(j + 1);
@@ -367,11 +381,212 @@ void GraphFASTTSP::randomInsertion(){
     totalDist = calcTotalDistance();
 }
 
-double GraphFASTTSP::calcTotalDistance(){
+double GraphFASTTSP::calcTotalDistance()const{
     double ans = 0;
     for(size_t i = 0; i < path.size() - 1; ++i){
         ans += calcDist(cages[path[i]], cages[path[i + 1]]);
     }
     ans += calcDist(cages[path[0]], cages[path[path.size()-1]]);
     return ans;
+}
+
+
+////////////////////////////////////////
+//              OPTTSP                //
+////////////////////////////////////////
+
+
+GraphOPT::GraphOPT(vector<int> path_in, vector<CageTSP> cages_in, double upperBound_in)
+:path(path_in), cages(cages_in)
+{
+    numCages = path_in.size();
+    bestPath = path;
+    upperBound = upperBound_in;
+    costMatrix = vector<vector<double>>(numCages, vector<double>(numCages, 0));
+}
+
+void GraphOPT::genCostMat(){
+    costMatrix.reserve(numCages);
+    for(size_t i = 0; i < numCages; ++i){
+        vector<double> temp;
+        for(size_t j = 0; j <= i; ++j){
+            costMatrix[i][j] = (calcDist(cages[i], cages[j]));
+        }
+    }
+}
+
+double GraphOPT::calcDist(const CageTSP & cageOne, const CageTSP & cageTwo)const{
+    uint64_t xDiff = cageOne.x - cageTwo.x;
+    uint64_t yDiff = cageOne.y - cageTwo.y;
+    uint64_t xDist = xDiff * xDiff;
+    uint64_t yDist = yDiff * yDiff;
+    return sqrt(xDist + yDist);
+}
+
+
+
+
+double GraphOPT::calcDistTotal()const{
+    /*double ans = 0;
+    for(size_t i = 0; i < path.size() - 1; ++i){
+        ans += calcDist(cages[path[i]], cages[path[i + 1]]);
+    }
+    ans += calcDist(cages[path[0]], cages[path[numCages-1]]);
+    return ans;*/
+    double ans = 0;
+    int parent = 0;
+    for(size_t i = 0; i < numCages; ++i){
+        if(parent > path[i]){
+            ans += costMatrix[parent][path[i]];
+        }else{
+            ans += costMatrix[path[i]][parent];
+        }
+        parent = path[i];
+    }
+    ans += costMatrix[parent][0];
+    return ans;
+}
+
+
+void GraphOPT::run(){
+    genCostMat();
+    size_t permLength = 1; 
+    genPerms(permLength);
+    print();
+}
+
+void GraphOPT::print()const{
+    cout << upperBound << '\n';
+    for(auto&itr:bestPath){
+        cout << itr << " ";
+    }
+}
+
+bool GraphOPT::promising(size_t permLength){
+    double subCost = 0;
+    int parent = 0;
+    //fixed permute cost
+    for(size_t i = 0; i < permLength; ++i){
+        if(parent > path[i]){
+            subCost += costMatrix[parent][path[i]];
+        }else{
+            subCost += costMatrix[path[i]][parent];
+        }
+        parent = path[i];
+    }
+
+    //connection costs and mst of the rest of the vertices.
+    double lowerBound = connectMSTback(permLength) + connectMSTfront(permLength) + calcMST(permLength) + subCost;
+    if(lowerBound > upperBound){
+        return false;
+    }
+    return true;
+}
+
+
+
+void GraphOPT::genPerms(size_t permLength){
+    if (permLength == path.size()) {
+        double temp = calcDistTotal();
+        if(temp < upperBound){
+            upperBound = temp;
+            bestPath = path;
+        }
+    return;
+    }  // if ..complete path
+
+  if (!promising(permLength)) {
+    return;
+  }  // if ..not promising
+
+  for (size_t i = permLength; i < numCages; ++i) {
+    swap(path[permLength], path[i]);
+    genPerms(permLength + 1);
+    swap(path[permLength], path[i]);
+  }  // for ..unpermuted elements
+}
+
+double GraphOPT::calcMST(size_t permLength){
+    struct tracker{
+        bool visited = false;
+        double dist = numeric_limits<double>::infinity();
+    };
+
+    int pathI = path[permLength];
+    size_t nextV = 0, currentV = 0;
+    double totalDist = 0;
+    
+    //initialize tracking vector, visitedCages[i] -> cages[i]
+    tracker temp;
+    vector<tracker> visitedCages(numCages, temp);
+
+    //first cage after the permutation is starter
+    visitedCages[pathI].dist = 0;
+    //outer loop
+    for(size_t i = permLength; i < numCages; ++i){
+        //step 1: identify lowest distance
+        double minDist = numeric_limits<double>::infinity();
+        for(size_t k = permLength; k < numCages; ++k){
+            //this is the path index after the fixed perm
+            int pathK = path[k];
+            //if the cage has been visited,skip it
+            if(visitedCages[pathK].visited){
+                continue;
+            }
+            // if the cage has a lower distance, store the lower distance and track the index of the cage on the path
+            if(visitedCages[pathK].dist < minDist){
+                nextV = pathK;
+                minDist = visitedCages[pathK].dist;
+            }
+        }
+        
+        //step 2: lowest distance set to true
+        visitedCages[nextV].visited = true;
+        //make new edge, add to path
+        totalDist += minDist;
+        //define new parent for step 3
+        currentV = nextV;
+
+        //step 3: update unvisited distances
+        for(size_t j = permLength; j < numCages; ++j){
+            int pathJ = path[j];
+            //if already visited, skip
+            if(visitedCages[pathJ].visited){
+                continue;
+            }
+            //current cage min to beat
+            double min = visitedCages[pathJ].dist;
+            //current cage to the other cages
+            double temp = calcDist(cages[currentV], cages[pathJ]);
+            //If distance from current parent is lower than current distance, update
+            if(temp < min){
+                visitedCages[pathJ].dist = temp;
+                cages[pathJ].parent = currentV;
+            }
+        }
+    }
+    return totalDist;
+}
+
+
+double GraphOPT::connectMSTfront(size_t permLength){
+    double min = numeric_limits<double>::infinity();
+    for(size_t i = permLength; i < numCages; ++i){
+        double temp = calcDist(cages[path[0]], cages[path[i]]);
+        if(temp < min){
+            min = temp;
+        }
+    }
+    return min;
+}
+
+double GraphOPT::connectMSTback(size_t permLength){
+    double min = numeric_limits<double>::infinity();
+    for(size_t i = permLength; i < numCages; ++i){
+        double temp = calcDist(cages[path[permLength - 1]], cages[path[i]]);
+        if(temp < min){
+            min = temp;
+        }
+    }
+    return min;
 }
